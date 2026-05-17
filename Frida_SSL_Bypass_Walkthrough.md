@@ -1,6 +1,5 @@
-# Frida SSL Pinning Bypass Lab — Walkthrough
+<img width="1600" height="795" alt="image" src="https://github.com/user-attachments/assets/b35fdbee-0794-49fd-b2bd-593bf17e0c09" /># Frida SSL Pinning Bypass Lab — Walkthrough
 
-> **Avertissement éthique** : N'appliquez ce lab que sur des appareils/apps vous appartenant ou dans un cadre d'audit autorisé.
 
 ---
 
@@ -42,80 +41,32 @@ Vérifier :
 frida-ps -Uai
 ```
 
-> 📸 **Capture 1** — Sortie de `frida-ps -Uai` montrant `com.example.sslpinningtest`
-> `[insérer screenshot ici]`
+---
+
+<img width="1292" height="192" alt="image" src="https://github.com/user-attachments/assets/c888214e-634b-4d0a-8db8-a26ce8ded66f" />
 
 ---
 
-## Étape 2 — Premier essai (échec attendu)
+<img width="1092" height="477" alt="image" src="https://github.com/user-attachments/assets/c094a5e2-4aee-449b-a53b-77fa45b8f473" />
+`
 
-Lancer le script universel initial :
+---
 
-```bash
-frida -U -f com.example.sslpinningtest -l sslpin_bypass_universal.js
-```
+## Étape 2 — test de l'application
+
 
 Appuyer sur le bouton dans l'app → ❌ encore bloqué.
 
-**Diagnostic :** le script hookait `check()` mais pas `check$okhttp()`, la méthode interne Kotlin qui fait la vraie vérification.
-
-> 📸 **Capture 2** — App affichant ❌ malgré les hooks Frida actifs
-> `[insérer screenshot ici]`
 
 ---
 
-## Étape 3 — Identifier les méthodes réelles (diagnostic)
+<img width="1600" height="819" alt="image" src="https://github.com/user-attachments/assets/baf5e97e-ed91-43b9-99f9-02a6d7056cb4" />
 
-Dans la console Frida interactive, énumérer toutes les méthodes de `CertificatePinner` :
-
-```javascript
-Java.perform(function(){
-  var CP = Java.use('okhttp3.CertificatePinner');
-  console.log(JSON.stringify(Object.getOwnPropertyNames(CP)));
-})
-```
-
-Résultat révélateur :
-```
-[..., "check$okhttp", "check", ...]
-```
-
-→ `check$okhttp` est la méthode interne Kotlin invisible via l'API Java classique.
-
-> 📸 **Capture 3** — Console Frida avec la liste des méthodes de CertificatePinner
-> `[insérer screenshot ici]`
 
 ---
 
-## Étape 4 — Fix : hooker check$okhttp directement
 
-Dans la console Frida :
-
-```javascript
-Java.perform(function(){
-  var CP = Java.use('okhttp3.CertificatePinner');
-  CP['check$okhttp'].implementation = function(host, certs){
-    console.log('[+] check$okhttp SKIPPED for: ' + host);
-    return;
-  };
-  CP['check'].overloads.forEach(function(ov){
-    ov.implementation = function(){
-      console.log('[+] check SKIPPED');
-      return;
-    };
-  });
-  console.log('[+] ALL patched');
-})
-```
-
-Appuyer sur le bouton → ✅ Succès.
-
-> 📸 **Capture 4** — Console Frida avec `check$okhttp SKIPPED` + app affichant ✅
-> `[insérer screenshot ici]`
-
----
-
-## Étape 5 — Script final corrigé (sslpin_bypass_universal.js)
+## Étape 3 — Script  (sslpin_bypass_universal.js)
 
 Le fix `check$okhttp` a été intégré dans le script final pour fonctionner **directement au spawn** :
 
@@ -132,8 +83,17 @@ Résultat attendu au démarrage :
 [+] Universal SSL pinning bypass installed
 ```
 
-> 📸 **Capture 5** — Terminal avec tous les hooks confirmés au spawn
-> `[insérer screenshot ici]`
+---
+
+<img width="1600" height="795" alt="image" src="https://github.com/user-attachments/assets/5122f8ec-3402-46f7-b943-c50bf74e8b01" />
+
+---
+
+<img width="1600" height="731" alt="image" src="https://github.com/user-attachments/assets/5094a35c-fede-4997-b90b-1c8a8ad3b364" />
+
+---
+
+<img width="1600" height="719" alt="image" src="https://github.com/user-attachments/assets/06ef3a5a-0067-4e55-89df-29c896d03506" />
 
 ---
 
@@ -156,11 +116,15 @@ SSL_shutdown()           → fermeture propre
 
 **Conclusion :** `SSL_get_verify_result` absent → pinning 100% Java (OkHttp), pas natif.
 
-> 📸 **Capture 6** — Terminal frida-trace montrant les symboles SSL actifs
-> `[insérer screenshot ici]`
+---
+
+<img width="1600" height="729" alt="image" src="https://github.com/user-attachments/assets/6e3176fb-2792-4a7d-b513-cedfd6bc20a2" />
 
 ---
 
+<img width="1600" height="798" alt="image" src="https://github.com/user-attachments/assets/d85c3af6-588a-463a-8c8c-489431e718ef" />
+
+---
 ## Étape 7 — Script natif BoringSSL (sslpin_bypass_native.js)
 
 Créé pour les apps avec pinning natif. Deux hooks :
@@ -185,8 +149,13 @@ Résultat sur notre app :
 
 > Les hooks natifs échouent proprement (symboles non interceptables sur cet émulateur). Le bypass Java prend le relais.
 
-> 📸 **Capture 7** — Terminal bypass combiné + app ✅ Succès
-> `[insérer screenshot ici]`
+---
+
+<img width="1600" height="833" alt="image" src="https://github.com/user-attachments/assets/9e8ba53f-af15-47a1-83bb-18e6d67b353e" />
+
+---
+
+<img width="1600" height="801" alt="image" src="https://github.com/user-attachments/assets/c725b320-b619-4625-9b86-4c3543738f2c" />
 
 ---
 
@@ -197,33 +166,23 @@ Dans Burp → HTTP History :
 https://api.github.com    GET    /    200    JSON
 ```
 
-> 📸 **Capture 8** — Burp HTTP History avec api.github.com intercepté
-> `[insérer screenshot ici]`
+---
+
+<img width="1600" height="818" alt="image" src="https://github.com/user-attachments/assets/38cf38f5-1f61-42a9-beb9-5c4a54153011" />
 
 ---
 
-## Découverte clé du lab
-
-OkHttp 4.x compilé en Kotlin génère une méthode interne `check$okhttp()` invisible via l'API Java classique. Les scripts génériques ratent cette méthode. La technique de diagnostic :
-
-```javascript
-Object.getOwnPropertyNames(Java.use('okhttp3.CertificatePinner'))
-```
-
-permet de lister **toutes** les méthodes réelles, y compris les méthodes Kotlin internes, pour hooker la bonne cible.
-
----
 
 ## Résumé
 
 | Étape | Technique | Résultat |
 |-------|-----------|----------|
-| Script universel initial | Hook `check()` seul | ❌ Insuffisant |
-| Diagnostic `getOwnPropertyNames` | Découverte de `check$okhttp` | ✅ Méthode réelle identifiée |
-| Script final | Hook `check$okhttp` + `check()` | ✅ Bypass au spawn |
-| frida-trace natif | Traçage `SSL_*` / `X509_*` | ✅ Pinning Java confirmé |
-| Script natif BoringSSL | Hook `SSL_get_verify_result` | ✅ Prêt pour apps natives |
-| Burp HTTP History | Capture trafic HTTPS | ✅ api.github.com intercepté |
+| Script universel initial | Hook `check()` seul |  Insuffisant |
+| Diagnostic `getOwnPropertyNames` | Découverte de `check$okhttp` |  Méthode réelle identifiée |
+| Script final | Hook `check$okhttp` + `check()` |  Bypass au spawn |
+| frida-trace natif | Traçage `SSL_*` / `X509_*` |  Pinning Java confirmé |
+| Script natif BoringSSL | Hook `SSL_get_verify_result` |  Prêt pour apps natives |
+| Burp HTTP History | Capture trafic HTTPS |  api.github.com intercepté |
 
 ---
 
@@ -236,3 +195,7 @@ permet de lister **toutes** les méthodes réelles, y compris les méthodes Kotl
 - [x] Script natif BoringSSL créé et testé
 - [x] Bypass combiné Java + Natif fonctionnel
 - [x] Trafic HTTPS intercepté dans Burp
+
+
+## Auteur
+**H-oubane**

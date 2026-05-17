@@ -1,4 +1,4 @@
-<img width="1600" height="795" alt="image" src="https://github.com/user-attachments/assets/b35fdbee-0794-49fd-b2bd-593bf17e0c09" /># Frida SSL Pinning Bypass Lab — Walkthrough
+# Frida SSL Pinning Bypass Lab — Walkthrough
 
 
 ---
